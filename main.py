@@ -19,6 +19,11 @@ def extract_slug_from_url(url: str) -> str:
     if not parts:
         raise ValueError("Cannot extract slug from URL")
     return parts[-1]
+    
+@app.get("/methods")
+async def methods():
+    client = CS2()
+    return {"get_methods": [n for n in dir(client) if n.startswith("get_")]}
 
 
 # 🔹 RAW MATCH (pun BO3 response – samo za debug)
