@@ -35,23 +35,30 @@ def extract_slug_from_url(url: str) -> str:
 # METHODS REGISTRY (whitelist)
 # -----------------------------
 ALLOWED_METHODS = {
-    "get_live_match_snapshot",
+    # MATCH
     "get_live_matches",
+    "get_live_match_snapshot",
     "get_match_details",
-    "get_player_details",
-    "get_player_matches",
-    "get_player_stats",
-    "get_player_transfers",
+    "get_todays_matches",
+    "finished",
+
+    # TEAM
+    "search_teams",
     "get_team_data",
     "get_team_matches",
+    "get_team_upcoming_matches",
     "get_team_news",
     "get_team_stats",
     "get_team_transfers",
-    "get_team_upcoming_matches",
-    "get_todays_matches",
-    # ako imaš i finished() u wrapperu, dodaj i ovo:
-    # "finished",
+
+    # PLAYER
+    "search_players",
+    "get_player_details",
+    "get_player_stats",
+    "get_player_matches",
+    "get_player_transfers",
 }
+
 
 
 @app.get("/methods")
