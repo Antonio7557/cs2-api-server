@@ -1,3 +1,3 @@
 fastapi
 uvicorn[standard]
-git+https://github.com/Antonio7557/cs2api.git@c6a108ff76a12e68b3c1035292972ab0b6d1d145
+git+https://github.com/Antonio7557/cs2api.git
