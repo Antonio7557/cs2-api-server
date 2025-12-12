@@ -5,6 +5,13 @@ import inspect
 
 from cs2api import CS2
 
+# --- HOTFIX: cs2api ponekad zove self._make_request, a CS2 ga nema ---
+if not hasattr(CS2, "_make_request"):
+    async def _make_request(self, endpoint, params=None):
+        return await self._api._make_request(endpoint, params)
+    CS2._make_request = _make_request
+# --------------------------------------------------------------------
+
 app = FastAPI()
 
 
