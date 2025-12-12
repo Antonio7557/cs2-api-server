@@ -1,3 +1,4 @@
 fastapi
 uvicorn[standard]
+httpx
 git+https://github.com/Antonio7557/cs2api.git
