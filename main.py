@@ -42,6 +42,8 @@ ALLOWED_METHODS = {
     "get_team_transfers",
     "get_team_upcoming_matches",
     "get_todays_matches",
+    # ako imaš i finished() u wrapperu, dodaj i ovo:
+    # "finished",
 }
 
 
@@ -54,8 +56,6 @@ async def methods():
 async def describe(method_name: str):
     """
     Pokaže točan signature metode u cs2api wrapperu.
-    Primjer:
-    /describe/get_team_data
     """
     if method_name not in ALLOWED_METHODS:
         raise HTTPException(status_code=404, detail="Unknown or not allowed method")
@@ -73,14 +73,10 @@ async def describe(method_name: str):
 @app.get("/call/{method_name}")
 async def call_method(method_name: str, request: Request):
     """
-    Univerzalni endpoint koji radi i kad wrapper očekuje keyword parametre
-    i kad očekuje positional argument.
-
-    Primjeri:
-    /call/get_match_details?slug=mousesports-vs-faze-12-12-2025
-    /call/get_team_data?team_id=765        (ako metoda ne prima team_id, poslat će 765 positional)
-    /call/get_team_data?id=765             (ako prima id)
-    /call/get_team_data?slug=mousesports   (ako prima slug)
+    Univerzalni endpoint:
+    - radi za metode bez parametara (npr. get_todays_matches)
+    - radi za keyword parametre (npr. team_slug=..., team_id=...)
+    - radi i za positional fallback (ako wrapper ne prima keyword)
     """
     if method_name not in ALLOWED_METHODS:
         raise HTTPException(status_code=404, detail="Unknown or not allowed method")
@@ -96,30 +92,24 @@ async def call_method(method_name: str, request: Request):
             sig = inspect.signature(fn)
             expected_names = set(sig.parameters.keys())
 
-            # 1) probaj keyword args, ali samo one koje metoda stvarno prima
-            kwargs = {k: v for k, v in params.items() if k in expected_names}
+            # ✅ FIX #1: metode bez parametara
+            if len(sig.parameters) == 0:
+                data = await fn()
+                return {"method": method_name, "params": params, "data": data}
 
+            # 1) keyword args (samo oni koje metoda stvarno prima)
+            kwargs = {k: v for k, v in params.items() if k in expected_names}
             if kwargs:
                 data = await fn(**kwargs)
-                return {
-                    "method": method_name,
-                    "params": params,
-                    "resolved_kwargs": kwargs,
-                    "data": data,
-                }
+                return {"method": method_name, "params": params, "resolved_kwargs": kwargs, "data": data}
 
-            # 2) fallback: positional call (uzmi prvu vrijednost iz query params)
+            # 2) positional fallback (uzmi prvu vrijednost iz query params)
             if not params:
                 raise HTTPException(status_code=400, detail="No params provided")
 
             value = next(iter(params.values()))
             data = await fn(value)
-            return {
-                "method": method_name,
-                "params": params,
-                "resolved_positional": value,
-                "data": data,
-            }
+            return {"method": method_name, "params": params, "resolved_positional": value, "data": data}
 
     except TypeError as e:
         raise HTTPException(status_code=400, detail=f"Bad params: {str(e)}")
@@ -164,36 +154,36 @@ async def get_match_clean(url: str | None = None, slug: str | None = None):
         "bo_type": m.get("bo_type"),
 
         "tournament": {
-            "id": m.get("tournament", {}).get("id"),
-            "name": m.get("tournament", {}).get("name"),
-            "slug": m.get("tournament", {}).get("slug"),
+            "id": (m.get("tournament") or {}).get("id"),
+            "name": (m.get("tournament") or {}).get("name"),
+            "slug": (m.get("tournament") or {}).get("slug"),
         },
 
         "team1": {
-            "id": m.get("team1", {}).get("id"),
-            "name": m.get("team1", {}).get("name"),
-            "slug": m.get("team1", {}).get("slug"),
-            "rank": m.get("team1", {}).get("rank"),
+            "id": (m.get("team1") or {}).get("id"),
+            "name": (m.get("team1") or {}).get("name"),
+            "slug": (m.get("team1") or {}).get("slug"),
+            "rank": (m.get("team1") or {}).get("rank"),
         },
 
         "team2": {
-            "id": m.get("team2", {}).get("id"),
-            "name": m.get("team2", {}).get("name"),
-            "slug": m.get("team2", {}).get("slug"),
-            "rank": m.get("team2", {}).get("rank"),
+            "id": (m.get("team2") or {}).get("id"),
+            "name": (m.get("team2") or {}).get("name"),
+            "slug": (m.get("team2") or {}).get("slug"),
+            "rank": (m.get("team2") or {}).get("rank"),
         },
 
         "ai_prediction": {
-            "team1_score": m.get("ai_predictions", {}).get("prediction_team1_score"),
-            "team2_score": m.get("ai_predictions", {}).get("prediction_team2_score"),
-            "winner_team_id": m.get("ai_predictions", {}).get("prediction_winner_team_id"),
+            "team1_score": (m.get("ai_predictions") or {}).get("prediction_team1_score"),
+            "team2_score": (m.get("ai_predictions") or {}).get("prediction_team2_score"),
+            "winner_team_id": (m.get("ai_predictions") or {}).get("prediction_winner_team_id"),
         },
 
         "odds": {
-            "provider": m.get("bet_updates", {}).get("provider"),
-            "team1_coeff": m.get("bet_updates", {}).get("team_1", {}).get("coeff"),
-            "team2_coeff": m.get("bet_updates", {}).get("team_2", {}).get("coeff"),
-            "markets_count": m.get("bet_updates", {}).get("markets_count"),
+            "provider": (m.get("bet_updates") or {}).get("provider"),
+            "team1_coeff": ((m.get("bet_updates") or {}).get("team_1") or {}).get("coeff"),
+            "team2_coeff": ((m.get("bet_updates") or {}).get("team_2") or {}).get("coeff"),
+            "markets_count": (m.get("bet_updates") or {}).get("markets_count"),
         },
 
         "streams": [
