@@ -1,4 +1,4 @@
-fastapi
+fastapi[standard]
 uvicorn[standard]
 httpx
 cs2api @ git+https://github.com/Antonio7557/cs2api.git
